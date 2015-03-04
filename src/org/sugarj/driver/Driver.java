@@ -369,6 +369,8 @@ public class Driver {
       // GENERATE model
       if (params.syn == null)
         generateModel();
+
+      generateInterface();
       
       // COMPILE the generated java file
       if (circularLinks.isEmpty())
@@ -1243,6 +1245,34 @@ public class Driver {
       
       if (params.sourceFilePaths.contains(modelOutFile))
         driverResult.addGeneratedFile(modelOutFile);
+    } finally {
+      log.endTask();
+    }
+  }
+
+  private void generateInterface() throws IOException, TokenExpectedException, BadTokenException, InvalidParseTableException, SGLRException {
+    log.beginTask("GENERATE interface.", Log.CORE);
+    try {
+      if (params.sourceFiles.size() != 1)
+        throw new IllegalStateException("Cannot generate interface for more than a single source file at a time; FIXME.");
+
+      String moduleName = FileCommands.dropExtension(params.sourceFiles.iterator().next().getRelativePath());
+      RelativePath interfaceOutFile = params.env.createOutPath(moduleName + ".interface");
+
+      IStrategoTerm sugarTerm = makeSugaredSyntaxTree();
+
+      imp.setCurrentModelName(moduleName);
+      currentTransProg = str.compile(currentTransSTR, driverResult.getTransitivelyAffectedFiles(), baseLanguage.getPluginDirectory());
+
+      IStrategoTerm interfaceTerm = STRCommands.execute("extract-interface", currentTransProg, sugarTerm, baseProcessor.getInterpreter());
+      String string = ATermCommands.atermToString(interfaceTerm);
+
+//      String string = ATermCommands.atermToString(sugarTerm);
+
+      driverResult.generateFile(interfaceOutFile, string);
+
+      if (params.sourceFiles.contains(interfaceOutFile))
+        driverResult.addGeneratedFile(interfaceOutFile);
     } finally {
       log.endTask();
     }
