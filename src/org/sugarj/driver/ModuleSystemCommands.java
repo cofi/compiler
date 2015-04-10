@@ -89,6 +89,16 @@ public class ModuleSystemCommands {
     return str;
   }
   
+  public static RelativePath importInterface(String modulePath, Environment environment, Result driverResult) {
+    RelativePath path = searchFile(modulePath, "interface", environment, driverResult);
+    
+    if (path == null)
+      return null;
+    
+    log.log("Found interface for " + modulePath, Log.IMPORT);
+    return path;
+  }
+  
   /**
    * 
    * @param modulePath

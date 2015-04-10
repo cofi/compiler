@@ -108,6 +108,8 @@ public class Driver {
   private String currentTransModule;
   private Path currentTransProg;
   private List<String> availableSTRImports;
+
+  private List<Pair<IStrategoTerm, IStrategoTerm>> importedInterfaces;
   
   private List<IStrategoTerm> sugaredBodyDecls = new ArrayList<IStrategoTerm>();
   private List<IStrategoTerm> desugaredBodyDecls = new ArrayList<IStrategoTerm>();
@@ -269,6 +271,8 @@ public class Driver {
     // list of imports that contain Stratego extensions
     availableSTRImports = new ArrayList<String>();
     availableSTRImports.add(baseLanguage.getInitTransModuleName());
+    
+    importedInterfaces = new ArrayList<Pair<IStrategoTerm,IStrategoTerm>>();
   
     sdf = new SDFCommands(StdLib.sdfParser, sdfCache, params.env);
     str = new STRCommands(StdLib.strategoParser, strCache, params.env);
@@ -946,6 +950,10 @@ public class Driver {
       availableSTRImports.add(modulePath);
       buildCompoundStrModule();
     }
+    RelativePath ifc = ModuleSystemCommands.importInterface(modulePath, params.env, driverResult);
+    if (ifc != null) {
+      populateInterface(importTerm, ifc);      
+    }
     
     success |= ModuleSystemCommands.importEditorServices(modulePath, params.env, driverResult);
     
@@ -1265,6 +1273,8 @@ public class Driver {
       String string = ATermCommands.atermToString(interfaceTerm);
 
       driverResult.generateFile(interfaceOutFile, string);
+      //XXX: Remove, generates model of sugared module
+      driverResult.generateFile(params.env.createOutPath(moduleName + ".smodel"), ATermCommands.atermToString(sugarTerm));
 
       if (params.sourceFilePaths.contains(interfaceOutFile))
         driverResult.addGeneratedFile(interfaceOutFile);
@@ -1273,8 +1283,6 @@ public class Driver {
     }
   }
   
-      //XXX: Remove, generates model of sugared module
-      driverResult.generateFile(params.env.createOutPath(moduleName + ".smodel"), ATermCommands.atermToString(sugarTerm));
   private void buildCompoundSdfModule() throws IOException {
     FileCommands.deleteTempFiles(currentGrammarSDF);
     currentGrammarSDF = FileCommands.newTempFile("sdf");
@@ -1299,6 +1307,11 @@ public class Driver {
       builder.append(m).append(" ");
     
     FileCommands.writeToFile(currentTransSTR, builder.toString());
+  }
+  
+  private void populateInterface(IStrategoTerm importTerm, RelativePath path) throws IOException {
+    IStrategoTerm ifc = ATermCommands.atermFromFile(path.getAbsolutePath());
+    importedInterfaces.add(new Pair<IStrategoTerm, IStrategoTerm>(importTerm, ifc));
   }
 
   private void checkCurrentGrammar() throws IOException, InvalidParseTableException, TokenExpectedException, SGLRException {
@@ -1566,6 +1579,10 @@ public class Driver {
     return params;
   }
   
+  public List<Pair<IStrategoTerm, IStrategoTerm>> getImportedInterfaces() {
+      return importedInterfaces;
+  }
+
   @Override
   public String toString() {
     return "Driver(" + params.sourceFilePaths + ")";
