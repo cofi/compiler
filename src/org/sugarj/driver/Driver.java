@@ -1253,10 +1253,7 @@ public class Driver {
   private void generateInterface() throws IOException, TokenExpectedException, BadTokenException, InvalidParseTableException, SGLRException {
     log.beginTask("GENERATE interface.", Log.CORE);
     try {
-      if (params.sourceFiles.size() != 1)
-        throw new IllegalStateException("Cannot generate interface for more than a single source file at a time; FIXME.");
-
-      String moduleName = FileCommands.dropExtension(params.sourceFiles.iterator().next().getRelativePath());
+      String moduleName = FileCommands.dropExtension(params.sourceFilePaths.iterator().next().getRelativePath());
       RelativePath interfaceOutFile = params.env.createOutPath(moduleName + ".interface");
 
       IStrategoTerm sugarTerm = makeSugaredSyntaxTree();
@@ -1267,17 +1264,17 @@ public class Driver {
       IStrategoTerm interfaceTerm = STRCommands.execute("extract-interface", currentTransProg, sugarTerm, baseProcessor.getInterpreter());
       String string = ATermCommands.atermToString(interfaceTerm);
 
-//      String string = ATermCommands.atermToString(sugarTerm);
-
       driverResult.generateFile(interfaceOutFile, string);
 
-      if (params.sourceFiles.contains(interfaceOutFile))
+      if (params.sourceFilePaths.contains(interfaceOutFile))
         driverResult.addGeneratedFile(interfaceOutFile);
     } finally {
       log.endTask();
     }
   }
   
+      //XXX: Remove, generates model of sugared module
+      driverResult.generateFile(params.env.createOutPath(moduleName + ".smodel"), ATermCommands.atermToString(sugarTerm));
   private void buildCompoundSdfModule() throws IOException {
     FileCommands.deleteTempFiles(currentGrammarSDF);
     currentGrammarSDF = FileCommands.newTempFile("sdf");
